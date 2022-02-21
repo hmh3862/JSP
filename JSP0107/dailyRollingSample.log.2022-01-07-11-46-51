@@ -1,0 +1,5 @@
+2022-01-07 11:46:51,896 FATAL [kr.green.log.LogEx01] fatal 로그
+2022-01-07 11:46:51,904 ERROR [kr.green.log.LogEx01] error 로그
+2022-01-07 11:46:51,904  WARN [kr.green.log.LogEx01] warn 로그
+2022-01-07 11:46:51,904  INFO [kr.green.log.LogEx01] info 로그
+2022-01-07 11:46:51,904  INFO [kr.green.log.LogEx01] 롬복을 이용하여 로그찍기!!!
