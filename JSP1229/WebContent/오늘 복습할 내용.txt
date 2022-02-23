@@ -1,0 +1,4 @@
+1. out객체
+2. application객체
+3. 4개의 영역 차이
+4. forward사용법
