@@ -1,0 +1,6 @@
+2022-01-14 10:48:36,692 DEBUG [Log4j2Ex] debug log!!!
+2022-01-14 10:48:36,696  INFO [Log4j2Ex] main(String[]) - int x=100
+2022-01-14 10:48:36,696 DEBUG [Log4j2Ex] method() - start
+2022-01-14 10:48:36,696 DEBUG [Log4j2Ex] method() - end
+2022-01-14 10:48:36,696 DEBUG [Log4j2Ex] method(int, int) - start11,22
+2022-01-14 10:48:36,696 DEBUG [Log4j2Ex] method(int, int) - end 0
