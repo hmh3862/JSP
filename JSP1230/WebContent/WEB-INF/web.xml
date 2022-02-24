@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+	id="WebApp_ID" version="4.0">
+	<display-name>JSP1230</display-name>
+
+	<jsp-config>
+		<!-- 자동으로 코드를 삽입하라고 지정이 가능하다. -->
+		<jsp-property-group>
+			<!-- 어떤 주소일때 작동하라 -->
+			<url-pattern>/view/*</url-pattern>
+			<!-- 코드의 앞에 추가해라 -->
+			<include-prelude>/common/topcode.jsp</include-prelude>
+			<!-- 코드의 뒤에 추가하라 -->
+			<include-coda>/common/bottomcode.jsp</include-coda>
+		</jsp-property-group>
+	</jsp-config>
+
+	<!-- 에러 페이지 등록 -->
+	<!-- 1. 예외별 보여줄 페이지 등록 -->
+	<error-page>
+		<exception-type>java.lang.NullPointerException</exception-type>
+		<location>/error/null.jsp</location>
+	</error-page>
+	<error-page>
+		<exception-type>java.lang.ArithmeticException</exception-type>
+		<location>/error/zero.jsp</location>
+	</error-page>
+	
+	<!-- 2. 에러코드별 보여줄 페이지 등록 -->
+	<error-page>
+		<error-code>404</error-code>
+		<location>/error/404.jsp</location>
+	</error-page>
+
+	<error-page>
+		<error-code>500</error-code>
+		<location>/error/500.jsp</location>
+	</error-page>
+
+
+	<welcome-file-list>
+		<welcome-file>index.html</welcome-file>
+		<welcome-file>index.htm</welcome-file>
+		<welcome-file>index.jsp</welcome-file>
+		<welcome-file>default.html</welcome-file>
+		<welcome-file>default.htm</welcome-file>
+		<welcome-file>default.jsp</welcome-file>
+	</welcome-file-list>
+</web-app>
