@@ -1,0 +1,150 @@
+1. 어디에 저장? mariaDB
+DBCP 세팅
+
+2. 무엇?
+
+글번호
+작성자
+비밀번호
+제목
+내용
+조회수
+작성일
+아이피
+
+3. 테이블
+create table board(
+	idx int primary key auto_increment,
+	name varchar(30) not null,
+	password varchar(50) not null,
+	subject varchar(100) not null,
+	content text not null,
+	hit int default 0,
+	regDate timestamp default now(),
+	ip varchar(20) not null
+);
+
+4. DB에 접속 테이블 작성
+
+5. 패키지 3개 만들기 -- vo, dao, service
+
+6. VO패키지 클래스 2개 만들기
+BoardVO.java
+PagingVO.java
+	넘겨받을것
+	private int currentPage;
+	private int pageSize;
+	private int blockSize;
+	private int totalCount;
+	계산해줄것
+	private int totalPage;
+	private int startNo;
+	private int endNo;
+	private int startPage;
+	private int endPage;
+	
+	getter / list만 setter 추가
+	toString
+	부트스트랩 이용
+
+7. PagingTest
+	부트스트랩 이용
+
+8. BoardDAO 만들기
+BoardDAO.java     -- 인터페이스 만들기
+	1. 개수 구하기
+	2. 1개 얻기
+	3. 1페이지 얻기
+	4. 저장
+	5. 수정
+	6. 삭제
+	7. 비번확인
+	8. 조회수 증가
+
+BoardDAOImpl.java -- 인터페이스 구현한 클래스 만들기
+
+9. BoardService 만들기
+BoardService.java     -- 인터페이스 만들기
+	1. 목록보기
+	2. 1개 얻기 -- 내용보기, 수정폼, 삭제폼
+	3. 새글쓰기
+	4. 수정하기
+	5. 삭제하기
+
+BoardServiceImpl.java -- 인터페이스 구현한 클래스 만들기
+
+10. JSP파일 만들기
+include.jsp  -- 모든 파일에 공통으로 들어가는 코드
+index.jsp    -- 목록보기
+view.jsp     -- 내용보기
+insert.jsp   -- 새글쓰기 폼
+update.jsp   -- 수정하기 폼
+delete.jsp   -- 삭제하기 폼
+updateOk.jsp -- 데이터 받아 실제 저장/수정/삭제 처리 파일
+
+11. include.jsp  -- 모든 파일에 공통으로 들어가는 코드
+
+12. index.jsp    -- 목록보기
+BoardService의 PagingVO<BoardVO> selectList(int currentPage, int pageSize, int blockSize);
+=> BoardServiceImpl의 public PagingVO<BoardVO> selectList(int currentPage, int pageSize, int blockSize)
+1. 리턴 타입의 변수를 만든다.
+2. 컨넥션 변수를 만든다.
+3. DAO변수를 만든다.
+4. 트랜젝션 처리를 만든다.
+5. 로직을 처리한다.
+6. 닫기
+7. 처리 결과를 리턴한다.
+=> 5) 로직에 있는 dao.selectCount / dao.selectList 만들기
+
+13. BoardDAOImpl
+public int selectCount(Connection conn) throws SQLException
+0. 리턴타입의 변수를 선언한다.
+1. 사용할 SQL명령을 만든다.
+2. 명령 객체를 만들어 미완성 SQL명령을 ?를 채워서 완성된 명령으로 만든다.
+3. 결과를 얻어온다.
+4. 얻어온 결과를 리턴타입의 변수에 넣는다.
+5. 사용한 객체를 닫는다.
+6. 결과를 리턴한다.
+
+public List<BoardVO> selectList(Connection conn, int startNo, int pageSize)
+0. 리턴타입의 변수를 선언한다.
+1. 사용할 SQL명령을 만든다.
+2. 명령 객체를 만들어 미완성 SQL명령을 ?를 채워서 완성된 명령으로 만든다.
+3. 결과를 얻어온다.
+4. 얻어온 결과를 리턴타입의 변수에 넣는다.
+5. 사용한 객체를 닫는다.
+6. 결과를 리턴한다.
+
+14. index.jsp 만들기
+글 제목 클릭해서 내용 보기 => view.jsp
+새글쓰기 클릭해서 새글 쓰기 => insert.jsp
+
+15. view.jsp 만들기
+
+16. view.jsp 의
+BoardVO vo = BoardServiceImpl.getInstance().selectByIdx(idx, incHit==1); 
+selectByIdx 만들기
+
+17. BoardService 의 selectByIdx 
+
+18. dao 의 아래 2개 만들기
+vo = dao.selectByIdx(conn, idx);
+dao.incrementHit(conn, idx);
+
+19. insert.jsp 만들기
+
+20. updateOk.jsp 만들기
+
+21. BoardServiceImpl 의
+insert / update / delete 채우기
+
+22. BoardDAOImpl 의
+passwordCheck / delete / update / insert   
+
+23. view.jsp 의
+이름 / 제목 / 내용 수정하기
+
+24. update.jsp => insert.jsp 파일 save as
+
+25. delete.jsp => update.jsp 파일 save as
+
