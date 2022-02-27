@@ -1,0 +1,15 @@
+1. src/main/resources 폴더에 db.properties, log4j 파일 넣기
+2. src/main/resources 폴더에 mybatis-config.xml 파일 만들기
+	복사 붙여넣기 후 내용 수정
+3. TestVO(필요시), testMapper 만들기
+testMapper 만들기
+	복사 붙여넣기 후 내용 수정
+
+4. MybatisApp 만들기
+	세션팩토리 3줄 넣고 수정
+
+5. mybatisEx01 만들기 --> 연결성공
+
+6. MybatisApp 만들기
+
+7. mybatisEx02 만들기
