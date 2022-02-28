@@ -1,0 +1,25 @@
+1. 디비버 테이블 만들기
+2. CategoryVO 만들기
+3. categoryMapper.xml 파일
+4. mybatis-config.xml 에 추가
+	<typeAlias type="kr.green.category.vo.CategoryVO" alias="CategoryVO"/>
+	<mapper resource="mapper/categoryMapper.xml" />
+5. categoryMapper.xml 내용 채우기
+6. listTest
+디비버 테이블 내용 추가
+insert.jsp
+listTest
+reply.jsp
+categoryMapper.xml
+reply.jsp
+listTest
+updateItem.jsp
+categoryMapper.xml
+updateItem.jsp
+deleteItem.jsp
+categoryMapper.xml
+deleteItem.jsp
+categoryMapper.xml
+delTest.jsp
+categoryMapper.xml
+deleteItem.jsp
