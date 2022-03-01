@@ -1,0 +1,625 @@
+자료실 만들기
+-------------
+1. 어디에 저장할까? --- MariaDB
+2. 무엇을 저장할까?
+   이름, 비번, 제목, 내용, 날짜, ip, 첨부파일 ....
+3. 어떻게 저장할까?
+   
+   원본글 저장 : fileBoard
+   키필드  --- idx  -- int
+   이름    --- name -- varchar
+   비번    --- password -- varchar
+   제목    --- subject  -- varchar
+   내용    --- content  -- text
+   작성일  --- regDate  -- timestamp
+   아이피  --- ip       -- varchar
+   
+   첨부파일 저장 : boardFile
+   키필드  --- idx -- int
+   참조	   --- ref -- int
+   원본파일명 --- oriName -- varchar
+   저장파일명 --- saveName -- varchar
+   
+4. 테이블을 만들자
+   create table  fileBoard(
+   	idx int primary key auto_increment,
+   	name varchar(50) not null,
+   	password varchar(50) not null,
+   	subject varchar(100) not null,
+   	content text not null,
+   	regDate timestamp default now(),
+   	ip varchar(15) not null
+  );
+  
+   create table  boardFile(
+   	idx int primary key auto_increment,
+   	ref int not null,
+   	oriName varchar(100) not null,
+   	saveName varchar(100) not null
+  );  	    
+
+5. 패키지 3개를 만들자!!!
+   kr.green.file.service  
+   kr.green.file.dao  
+   kr.green.file.vo  
+   
+6. VO를 클래스 3개를 만들자!!!!  
+   FileBoardVO.java
+   BoardFileVO.java
+   PagingVO.java
+  
+7. 마이바티스설정 파일에 타입을 등록하고 맵퍼파일을 추가한다.
+--------------------------------------------------------------------------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<!-- 프로퍼티 파일 이름 지정 -->
+	<properties resource="db.properties"></properties>
+	<!-- VO를 만들때마다 1개씩 추가해라 -->
+	<typeAliases>
+		<typeAlias type="kr.green.file.vo.BoardFileVO" alias="BoardFileVO"/>
+		<typeAlias type="kr.green.file.vo.FileBoardVO" alias="FileBoardVO"/>
+	</typeAliases>
+
+	<environments default="development">
+		<environment id="development">
+			<transactionManager type="JDBC" />
+			<dataSource type="POOLED">
+				<property name="driver" value="${m.driver}" />
+				<property name="url" value="${m.url}" />
+				<property name="username" value="${m.username}" />
+				<property name="password" value="${m.password}" />
+			</dataSource>
+		</environment>
+	</environments>
+	<!-- 매퍼파일 만들때 마다 추가하라 -->
+	<mappers>
+		<mapper resource="mapper/testMapper.xml" />
+		<mapper resource="mapper/boardMapper.xml" />
+		<mapper resource="mapper/fileMapper.xml" />
+	</mappers>
+</configuration>  
+--------------------------------------------------------------------------------------------------------
+8. 맵퍼 파일에 SQL명령을 등록한다.
+--------------------------------------------------------------------------------------------------------
+boardMapper.xml
+--------------------------------------------------------------------------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="board">
+	<!-- 1. 전체 개수 세기 -->
+	<select id="selectCount" resultType="int">
+		select count(*) from fileboard
+	</select>
+	
+	<!-- 2. 1개 얻기 -->
+	<select id="selectByIdx" parameterType="int" resultType="FileBoardVO">
+		select * from fileboard where idx=#{idx}
+	</select>
+	
+	<!-- 3. 1페이지 얻기 -->
+	<select id="selectList" parameterType="hashmap" resultType="FileBoardVO">
+		select * from fileboard order by idx desc limit #{startNo}, #{pageSize}
+	</select>
+	
+	<!-- 4. 저장 -->
+	<insert id="insert" parameterType="FileBoardVO">
+		insert into fileboard
+		(name,password,subject,content,ip)
+		values
+		(#{name},#{password},#{subject},#{content},#{ip})
+	</insert>
+	<!-- 5. 수정 -->
+	<update id="update" parameterType="FileBoardVO">
+		update fileboard
+		set
+			subject=#{subject},
+			content=#{content},
+			regdate=now(),
+			ip = #{ip}
+		where
+			idx=#{idx}
+	</update>
+	<!-- 6. 삭제 -->
+	<delete id="delete" parameterType="int">
+		delete from fileboard where idx=#{idx}
+	</delete>
+</mapper>
+--------------------------------------------------------------------------------------------------------
+fileMapper.xml
+--------------------------------------------------------------------------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="file">
+	<!-- 1. 해당 ref의 첨부파일 목록 가져오기 -->
+	<select id="selectByRef" parameterType="int" resultType="BoardFileVO">
+		select * from boardfile where ref=#{ref}
+	</select>
+	
+	<!-- 2. 저장 -->
+	<insert id="insert" parameterType="BoardFileVO">
+		insert into boardfile
+		(ref,oriName,saveName)
+		values
+		(#{ref},#{oriName},#{saveName})
+	</insert>
+	
+	<!-- 3. 삭제 -->
+	<delete id="delete" parameterType="int">
+		delete from boardfile where idx=#{idx}
+	</delete>
+</mapper>
+--------------------------------------------------------------------------------------------------------
+
+9. 맵퍼 파일을 참조하여 DAO와 DAOImple을 만든다.
+--------------------------------------------------------------------------------------------------------
+FileBoardDAO.java
+--------------------------------------------------------------------------------------------------------
+package kr.green.file.dao;
+
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+
+import org.apache.ibatis.session.SqlSession;
+import kr.green.file.vo.FileBoardVO;
+public interface FileBoardDAO {
+	// <!-- 1. 전체 개수 세기 -->
+	int selectCount(SqlSession sqlSession) throws SQLException;
+	// <!-- 2. 1개 얻기 -->
+	FileBoardVO selectByIdx(SqlSession sqlSession, int idx) throws SQLException;
+	// <!-- 3. 1페이지 얻기 -->
+	List<FileBoardVO> selectList(SqlSession sqlSession,HashMap<String, Integer> map) throws SQLException;
+	// <!-- 4. 저장 -->
+	void insert(SqlSession sqlSession, FileBoardVO fileBoardVO) throws SQLException;
+	// <!-- 5. 수정 -->
+	void update(SqlSession sqlSession, FileBoardVO fileBoardVO) throws SQLException;
+	// <!-- 6. 삭제 -->
+	void delete(SqlSession sqlSession, int idx) throws SQLException;
+	// <!-- 7. 마지막에 저장한 글의 idx를 읽어오는 쿼리 -->
+	int selectMaxIdx(SqlSession sqlSession) throws SQLException;
+}
+
+--------------------------------------------------------------------------------------------------------
+FileBoardDAOImpl.java
+--------------------------------------------------------------------------------------------------------
+package kr.green.file.dao;
+
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import org.apache.ibatis.session.SqlSession;
+import kr.green.file.vo.FileBoardVO;
+
+public class FileBoardDAOImpl implements FileBoardDAO{
+	private static FileBoardDAO instance = new FileBoardDAOImpl();
+	private FileBoardDAOImpl() {}
+	public static FileBoardDAO getInstance() {
+		return instance;
+	}
+	//---------------------------------------------------------------------------
+	@Override
+	public int selectCount(SqlSession sqlSession) throws SQLException {
+		return sqlSession.selectOne("board.selectCount");
+	}
+	@Override
+	public FileBoardVO selectByIdx(SqlSession sqlSession, int idx) throws SQLException {
+		return sqlSession.selectOne("board.selectByIdx", idx);
+	}
+	@Override
+	public List<FileBoardVO> selectList(SqlSession sqlSession, HashMap<String, Integer> map) throws SQLException {
+		return sqlSession.selectList("board.selectList", map);
+	}
+	@Override
+	public void insert(SqlSession sqlSession, FileBoardVO fileBoardVO) throws SQLException {
+		sqlSession.insert("board.insert", fileBoardVO);
+	}
+	@Override
+	public void update(SqlSession sqlSession, FileBoardVO fileBoardVO) throws SQLException {
+		sqlSession.update("board.update", fileBoardVO);
+	}
+	@Override
+	public void delete(SqlSession sqlSession, int idx) throws SQLException {
+		sqlSession.delete("board.delete", idx);
+	}
+	@Override
+	public int selectMaxIdx(SqlSession sqlSession) throws SQLException {
+		return sqlSession.selectOne("board.selectMaxIdx");
+	}
+}
+
+--------------------------------------------------------------------------------------------------------
+BoardFileDAO.java
+--------------------------------------------------------------------------------------------------------
+package kr.green.file.dao;
+
+import java.sql.SQLException;
+import java.util.List;
+import org.apache.ibatis.session.SqlSession;
+import kr.green.file.vo.BoardFileVO;
+
+public interface BoardFileDAO {
+	// <!-- 1. 해당 ref의 첨부파일 목록 가져오기 -->
+	List<BoardFileVO> selectByRef(SqlSession sqlSession, int ref) throws SQLException ;
+	// <!-- 2. 저장 -->
+	void insert(SqlSession sqlSession, BoardFileVO boardFileVO) throws SQLException ;
+	// <!-- 3. 삭제 -->
+	void delete(SqlSession sqlSession, int idx) throws SQLException ;
+}
+
+
+--------------------------------------------------------------------------------------------------------
+BoardFileDAOImpl.java
+--------------------------------------------------------------------------------------------------------
+package kr.green.file.dao;
+
+import java.sql.SQLException;
+import java.util.List;
+
+import org.apache.ibatis.session.SqlSession;
+
+import kr.green.file.vo.BoardFileVO;
+
+public class BoardFileDAOImpl implements BoardFileDAO{
+	private static BoardFileDAO instance = new BoardFileDAOImpl();
+	private BoardFileDAOImpl() {}
+	public static BoardFileDAO getInstance() {
+		return instance;
+	}
+	//---------------------------------------------------------------------------
+	@Override
+	public List<BoardFileVO> selectByRef(SqlSession sqlSession, int ref) throws SQLException {
+		return sqlSession.selectList("file.selectByRef", ref);
+	}
+	@Override
+	public void insert(SqlSession sqlSession, BoardFileVO boardFileVO) throws SQLException  {
+		sqlSession.insert("file.insert", boardFileVO);
+	}
+	@Override
+	public void delete(SqlSession sqlSession, int idx) throws SQLException  {
+		sqlSession.delete("file.delete", idx);
+	}
+}
+
+--------------------------------------------------------------------------------------------------------
+
+10. 서비스 클래스를 만들자!!!
+--------------------------------------------------------------------------------------------------------
+FileBoardService.java
+--------------------------------------------------------------------------------------------------------
+package kr.green.file.service;
+
+import kr.green.file.vo.FileBoardVO;
+import kr.green.file.vo.PagingVO;
+
+public interface FileBoardService {
+	// 목록보기
+	PagingVO<FileBoardVO> selectList(int currentPage, int pageSize, int blockSize);
+	// 저장하기
+	void insert(FileBoardVO fileBoardVO);
+	// 내용보기
+	FileBoardVO selectByIdx(int idx);
+	// 수정하기
+	void update(FileBoardVO fileBoardVO);
+	// 삭제하기
+	void delete(FileBoardVO fileBoardVO);
+}
+
+--------------------------------------------------------------------------------------------------------
+FileBoardServiceImpl.java
+--------------------------------------------------------------------------------------------------------
+package kr.green.file.service;
+
+import java.util.HashMap;
+import java.util.List;
+
+import org.apache.ibatis.session.SqlSession;
+
+import kr.green.file.dao.BoardFileDAO;
+import kr.green.file.dao.BoardFileDAOImpl;
+import kr.green.file.dao.FileBoardDAO;
+import kr.green.file.dao.FileBoardDAOImpl;
+import kr.green.file.vo.BoardFileVO;
+import kr.green.file.vo.FileBoardVO;
+import kr.green.file.vo.PagingVO;
+import kr.green.mybatis.MybatisApp;
+import lombok.extern.log4j.Log4j;
+
+@Log4j
+public class FileBoardServiceImpl implements FileBoardService {
+	private static FileBoardService instance = new FileBoardServiceImpl();
+	private FileBoardServiceImpl() {}
+	public static FileBoardService getInstance() {
+		return instance;
+	}
+	//----------------------------------------------------------------------
+	@Override
+	public PagingVO<FileBoardVO> selectList(int currentPage, int pageSize, int blockSize) {
+		log.debug("selectList 호출 : " + currentPage + ", " + pageSize + ", " + blockSize);
+		PagingVO<FileBoardVO> pagingVO = null;
+		//------------------------------------------------------------------------
+		SqlSession sqlSession = null;
+		FileBoardDAO fileBoardDAO = null;
+		BoardFileDAO boardFileDAO = null;
+		try {
+			sqlSession = MybatisApp.getSqlSessionFactory().openSession(false);
+			fileBoardDAO = FileBoardDAOImpl.getInstance();
+			boardFileDAO = BoardFileDAOImpl.getInstance();
+			//------------------------------------------------------------------------
+			// 1. 전체 개수 구하기
+			int totalCount = fileBoardDAO.selectCount(sqlSession);
+			// 2. 페이지 계산
+			pagingVO = new PagingVO<FileBoardVO>(totalCount, currentPage, pageSize, blockSize);
+			// 3. 글목록 가져오기
+			HashMap<String, Integer> map = new HashMap<String, Integer>();
+			map.put("startNo", pagingVO.getStartNo());
+			map.put("pageSize", pagingVO.getPageSize());
+			List<FileBoardVO> list = fileBoardDAO.selectList(sqlSession, map);
+			// 4. 각각의 글에 첨부 파일 정보를 추가한다.
+			if(list!=null) {
+				for(FileBoardVO vo : list) {
+					// 해당글의 첨부파일 정보 얻기
+					List<BoardFileVO> fileList = boardFileDAO.selectByRef(sqlSession, vo.getIdx());
+					// vo에 넣자
+					vo.setFileList(fileList);
+				}
+				// 5. 리스트를 pagingVO에 넣자
+				pagingVO.setList(list);
+			}
+			//------------------------------------------------------------------------
+			sqlSession.commit();
+		}catch (Exception e) {
+			sqlSession.rollback();
+			e.printStackTrace();
+		}finally {
+			sqlSession.close();
+		}
+		//------------------------------------------------------------------------
+		log.debug("selectList 리턴 : " + pagingVO);
+		return pagingVO;
+	}
+	@Override
+	public void insert(FileBoardVO fileBoardVO) {
+		log.debug("insert 호출 : " + fileBoardVO);
+		//------------------------------------------------------------------------
+		SqlSession sqlSession = null;
+		FileBoardDAO fileBoardDAO = null;
+		BoardFileDAO boardFileDAO = null;
+		try {
+			sqlSession = MybatisApp.getSqlSessionFactory().openSession(false);
+			fileBoardDAO = FileBoardDAOImpl.getInstance();
+			boardFileDAO = BoardFileDAOImpl.getInstance();
+			//------------------------------------------------------------------------
+			
+			//------------------------------------------------------------------------
+			sqlSession.commit();
+		}catch (Exception e) {
+			sqlSession.rollback();
+			e.printStackTrace();
+		}finally {
+			sqlSession.close();
+		}
+		//------------------------------------------------------------------------
+		log.debug("insert 리턴 : ");
+	}
+	@Override
+	public FileBoardVO selectByIdx(int idx) {
+		log.debug("selectByIdx 호출 : " + idx);
+		FileBoardVO fileBoardVO = null;
+		//------------------------------------------------------------------------
+		SqlSession sqlSession = null;
+		FileBoardDAO fileBoardDAO = null;
+		BoardFileDAO boardFileDAO = null;
+		try {
+			sqlSession = MybatisApp.getSqlSessionFactory().openSession(false);
+			fileBoardDAO = FileBoardDAOImpl.getInstance();
+			boardFileDAO = BoardFileDAOImpl.getInstance();
+			//------------------------------------------------------------------------
+			
+			//------------------------------------------------------------------------
+			sqlSession.commit();
+		}catch (Exception e) {
+			sqlSession.rollback();
+			e.printStackTrace();
+		}finally {
+			sqlSession.close();
+		}
+		//------------------------------------------------------------------------
+		log.debug("selectByIdx 리턴 : " + fileBoardVO);
+		return fileBoardVO;
+	}
+	@Override
+	public void update(FileBoardVO fileBoardVO) {
+		log.debug("update 호출 : " + fileBoardVO);
+		//------------------------------------------------------------------------
+		SqlSession sqlSession = null;
+		FileBoardDAO fileBoardDAO = null;
+		BoardFileDAO boardFileDAO = null;
+		try {
+			sqlSession = MybatisApp.getSqlSessionFactory().openSession(false);
+			fileBoardDAO = FileBoardDAOImpl.getInstance();
+			boardFileDAO = BoardFileDAOImpl.getInstance();
+			//------------------------------------------------------------------------
+			
+			//------------------------------------------------------------------------
+			sqlSession.commit();
+		}catch (Exception e) {
+			sqlSession.rollback();
+			e.printStackTrace();
+		}finally {
+			sqlSession.close();
+		}
+		//------------------------------------------------------------------------
+		log.debug("update 리턴 : ");
+	}
+	@Override
+	public void delete(FileBoardVO fileBoardVO) {
+		log.debug("delete 호출 : " + fileBoardVO);
+		//------------------------------------------------------------------------
+		SqlSession sqlSession = null;
+		FileBoardDAO fileBoardDAO = null;
+		BoardFileDAO boardFileDAO = null;
+		try {
+			sqlSession = MybatisApp.getSqlSessionFactory().openSession(false);
+			fileBoardDAO = FileBoardDAOImpl.getInstance();
+			boardFileDAO = BoardFileDAOImpl.getInstance();
+			//------------------------------------------------------------------------
+			
+			//------------------------------------------------------------------------
+			sqlSession.commit();
+		}catch (Exception e) {
+			sqlSession.rollback();
+			e.printStackTrace();
+		}finally {
+			sqlSession.close();
+		}
+		//------------------------------------------------------------------------
+		log.debug("delete 리턴 : ");
+	}
+}
+
+--------------------------------------------------------------------------------------------------------
+
+11. 출력을 담당하는 jsp파일을 만들자!!!
+--------------------------------------------------------------------------------------------------------
+index.jsp
+--------------------------------------------------------------------------------------------------------
+<%@page import="kr.green.file.service.FileBoardServiceImpl"%>
+<%@page import="kr.green.file.vo.FileBoardVO"%>
+<%@page import="kr.green.file.vo.PagingVO"%>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%-- JSTL 추가 --%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<%-- 공통코드 삽입 --%>
+<%@ include file="include.jsp" %>
+<%
+	// 1페이지 분량의 글을 읽어오기
+	PagingVO<FileBoardVO> pagingVO = FileBoardServiceImpl.getInstance().selectList(currentPage, pageSize, blockSize);
+	request.setAttribute("pv", pagingVO);
+%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>자료실 목록 보기</title>
+<%-- 부트스트랩을 사용하기 위한 준비 시작 --%>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js" ></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<%-- 부트스트랩을 사용하기 위한 준비 끝 --%>
+<%-- 사용자 정의 자바스크립트 함수를 추가한다. --%>
+<script type="text/javascript" src="${pageContext.request.contextPath }/js/commons.js"></script>
+
+<script type="text/javascript">
+
+</script>
+<style type="text/css">
+	table { width: 1000px; margin: auto; padding: 5px;}
+	th {padding: 5px; border: 1px solid gray; background-color: silver;text-align: center;}
+	td {padding: 5px; border: 1px solid gray; text-align: center;}
+	.title {border: none; font-size: 20pt; text-align: center;}
+	.sub_title {border: none; text-align: right;}
+	/* 링크의 모양을 변경한다. */
+	a:link 		{ color: black; text-decoration: none;} /* 링크가 걸린모양 */
+	a:visited 	{ color: black; text-decoration: none;} /* 방문했던 링크 */
+	a:hover 	{ color: black; text-decoration: none; font-weight: bold;} /* 마우스오버시 모양 */
+	a:active 	{ color: orange; text-decoration: none;} /* 마우스 클릭시 모양 */
+</style>
+</head>
+<body>
+	<table>
+		<tr>
+			<td colspan="5" class="title">
+				자 료 실
+			</td>
+		</tr>
+		<tr>
+			<td colspan="5" class="sub_title">
+				${pv.pageInfo }
+			</td>
+		</tr>
+		<tr>
+			<th>No</th>
+			<th width="55%">제목</th>
+			<th>작성자</th>
+			<th>작성일</th>
+			<th>IP</th>
+		</tr>
+		<c:if test="${pv.totalCount==0 }">
+			<tr>
+				<td colspan="5" style="text-align: center;">
+				등록된 글이 없습니다.
+				</td>
+			</tr>
+		</c:if>
+		<c:if test="${pv.totalCount>0 }">
+			<c:if test="${not empty pv.list }">
+				<%-- 시작 번호 계산 --%>
+				<c:set var="no" value="${pv.totalCount - (pv.currentPage-1)*pv.pageSize }"/>
+				<c:forEach var="vo" items="${pv.list }">
+					<tr>
+						<td>
+							${no }
+							<c:set var="no" value="${no - 1 }"/> <%-- 번호감소 --%>
+						</td>					
+						<td style="text-align: left;">
+							<a href="#" onclick='sendPost("view.jsp",{"p":${p } , "s": ${s }, "b":${b } , "idx":${vo.idx}})'>
+								<c:out value="${vo.subject }"/>
+							</a>
+							<%-- 첨부 파일 개수를 출력해보자 --%>
+							<c:if test="${not empty vo.fileList }">
+								 (${fn:length(vo.fileList) }개)
+							</c:if>
+						</td>					
+						<td>
+							<c:out value="${vo.name }"/>
+						</td>					
+						<td>
+							<fmt:formatDate value="${vo.regDate }" pattern="yy-MM-dd"/>
+						</td>					
+						<td>${vo.ip }</td>					
+					</tr>
+				</c:forEach>
+				<tr>
+					<td colspan="5" class="sub_title" style="text-align: center;">
+						${pv.pageList }
+					</td>
+				</tr>
+			</c:if>
+		</c:if>
+		<tr>
+			<td class="sub_title" colspan="6">
+				<button class="btn btn-outline-success btn-sm" 
+				 onclick='sendPost("insert.jsp",{"p":${p } , "s": ${s }, "b":${b }})'>새글쓰기</button>
+			</td>
+		</tr>
+	</table>
+</body>
+</html>
+
+
+--------------------------------------------------------------------------------------------------------
+view.jsp
+--------------------------------------------------------------------------------------------------------
+insert.jsp
+--------------------------------------------------------------------------------------------------------
+update.jsp
+--------------------------------------------------------------------------------------------------------
+delete.jsp
+--------------------------------------------------------------------------------------------------------
+updateOk.jsp
+--------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------
+
+
