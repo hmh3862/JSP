@@ -1,0 +1,89 @@
+1. 어디에 저장? --- oracle의 jspdb
+2. 무엇을 저장?
+   idx -- 글번호
+   name -- 작성자
+   password -- 비밀번호
+   subject -- 제목
+   content -- 내용
+   regdate -- 작성일
+   ip -- 아이피
+   hit -- 조회수
+
+3. 시퀀스와 테이블 작성
+    create sequence board_idx_seq;
+   DROP TABLE board;
+   create table board(
+   		idx number primary key,
+   		name varchar2(100) not null,
+   		password varchar2(100) not null,
+   		subject varchar2(1000) not null,
+   		content varchar2(4000) not null,
+   		regdate timestamp default sysdate,
+   		ip varchar2(20) not null,
+   		hit number default 0
+   ); 
+   
+  SELECT * FROM board;
+  
+  -- sample 데이터 3개 넣기
+  INSERT INTO board (idx,name,password,subject,content,ip) VALUES 
+                    (board_idx_seq.nextval,'나그네','1234','나는 제목1입니다.','나는 아마도 내용일걸요...','192.168.2.123');
+  INSERT INTO board (idx,name,password,subject,content,ip) VALUES 
+                    (board_idx_seq.nextval,'나그네','1234','나는 제목2입니다.','나는 아마도 내용일걸요...','192.168.2.123');
+  INSERT INTO board (idx,name,password,subject,content,ip) VALUES 
+                    (board_idx_seq.nextval,'나그네','1234','나는 제목3입니다.','나는 아마도 내용일걸요...','192.168.2.123');
+                   
+  SELECT * FROM board;
+  
+4. 패키지 4개를 만들자 
+	kr.green.board.vo
+	kr.green.board.dao
+	kr.green.board.service
+	kr.green.board.controller
+
+5.  BoardVO를 만들자
+	package kr.green.board.vo;
+	import java.util.Date;
+	import javax.xml.bind.annotation.XmlRootElement;
+	import lombok.Data;
+	@Data
+	@XmlRootElement
+	public class BoardVO {
+		private int idx;
+		private String name;
+		private String password;
+		private String subject;
+		private String content;
+		private Date   regDate;
+		private String ip;
+		private int hit;
+	}  
+	
+6. 	페이징 처리를 하는 VO를 만들어 보자!!!
+    마리아 DB와 다르게 이 부분이 바뀐다.
+    
+	private void calc() {
+		if (currentPage <= 0) currentPage = 1;
+		if (pageSize < 2) pageSize = 10;
+		if (blockSize < 2) blockSize = 10;
+
+		if (totalCount > 0) {
+			totalPage = (totalCount - 1) / pageSize + 1;
+			if (currentPage > totalPage) currentPage = 1;
+
+			startNo = (currentPage - 1) * pageSize + 1; // 오라클의 경우 rownum으로 조회하므로 1부터 시작되어야 한다. 그래서 +1을 꼭해야 한다.
+			endNo = startNo + pageSize - 1;
+			if (endNo > totalCount) endNo = totalCount; // 이 부분도 바뀐다. 마지막 번호는 글의 개수와 같다. -1을 하면 안된다.
+
+			startPage = (currentPage - 1) / blockSize * blockSize + 1;
+			endPage = startPage + blockSize - 1;
+			if (endPage > totalPage) endPage = totalPage;
+		}
+	}    
+	
+7. 매퍼와 DAO인터페이스를 만든다.
+8. DAO인터페이스를 구현한다.
+
+9. 서비스와 JSP를 1개씩 만들어 가자!!!	
+
+	
